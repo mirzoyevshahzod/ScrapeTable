@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Table;
 use Facebook\WebDriver\Chrome\ChromeOptions;
 use Facebook\WebDriver\WebDriverExpectedCondition;
 use Illuminate\Console\Command;
@@ -72,7 +73,7 @@ class ScrapeTable extends Command
             } while (true);
 
             // Export scraped data to an Excel file
-            $this->exportToExcel($data);
+            $this->writeToDatabase($data);
 
             $this->info('Scraping completed successfully and data exported to Excel.');
         } catch (\Exception $e) {
@@ -83,30 +84,50 @@ class ScrapeTable extends Command
         }
     }
 
+    //write to database 
+    private function writeToDatabase(array $data)
+    {
+
+        foreach ($data as $rowData) {
+            try {
+                Table::create([
+                    'ТИФ_ТН' => $rowData[0] ?? null,
+                    'Товар_номи' => $rowData[1] ?? null,
+                    'Ўлчов_бирлиги' => $rowData[2] ?? null,
+                    'Қўшимча_ўлчов_бирлиги' => $rowData[3] ?? null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } catch (\Exception $e) {
+                $this->error('Error writing to database: ' . $e->getMessage());
+            }
+        }
+    }
+
     /**
      * Export data to an Excel file.
      *
      * @param array $data
      */
-    private function exportToExcel(array $data)
-    {
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
+    // private function exportToExcel(array $data)
+    // {
+    //     $spreadsheet = new Spreadsheet();
+    //     $sheet = $spreadsheet->getActiveSheet();
 
-        // Write data to the spreadsheet
-        foreach ($data as $rowIndex => $row) {
-            foreach ($row as $colIndex => $cellValue) {
-                $columnLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex + 1);
-                $cellAddress = $columnLetter . ($rowIndex + 1);
-                $sheet->setCellValue($cellAddress, $cellValue);
-            }
-        }
+    //     // Write data to the spreadsheet
+    //     foreach ($data as $rowIndex => $row) {
+    //         foreach ($row as $colIndex => $cellValue) {
+    //             $columnLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex + 1);
+    //             $cellAddress = $columnLetter . ($rowIndex + 1);
+    //             $sheet->setCellValue($cellAddress, $cellValue);
+    //         }
+    //     }
 
-        // Save the file
-        $filePath = storage_path('app/scraped_dynamic_table.xlsx');
-        $writer = new Xlsx($spreadsheet);
-        $writer->save($filePath);
+    //     // Save the file
+    //     $filePath = storage_path('app/scraped_dynamic_table.xlsx');
+    //     $writer = new Xlsx($spreadsheet);
+    //     $writer->save($filePath);
 
-        $this->info("Data saved to: $filePath");
-    }
+    //     $this->info("Data saved to: $filePath");
+    // }
 }
